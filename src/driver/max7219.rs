@@ -1,6 +1,10 @@
 use embedded_hal::spi::SpiDevice;
 
-use crate::{MAX_DISPLAYS, Result, error::Error, registers::Register};
+use crate::{
+    MAX_DISPLAYS, NUM_DIGITS, Result,
+    error::Error,
+    registers::{DecodeMode, Register},
+};
 
 /// Driver for the MAX7219 LED display controller.
 /// Communicates over SPI using the embedded-hal `SpiDevice` trait.
@@ -155,6 +159,16 @@ where
         }
         let val = limit - 1;
         let ops: [(Register, u8); MAX_DISPLAYS] = [(Register::ScanLimit, val); MAX_DISPLAYS];
+        self.write_all_registers(&ops[..self.device_count])
+    }
+
+    pub fn set_device_decode_mode(&mut self, device_index: usize, mode: DecodeMode) -> Result<()> {
+        self.write_device_register(device_index, Register::DecodeMode, mode as u8)
+    }
+
+    pub fn set_decode_mode_all(&mut self, mode: DecodeMode) -> Result<()> {
+        let byte = mode as u8;
+        let ops: [(Register, u8); MAX_DISPLAYS] = [(Register::DecodeMode, byte); MAX_DISPLAYS];
         self.write_all_registers(&ops[..self.device_count])
     }
 }
