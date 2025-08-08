@@ -171,6 +171,11 @@ where
         let ops: [(Register, u8); MAX_DISPLAYS] = [(Register::DecodeMode, byte); MAX_DISPLAYS];
         self.write_all_registers(&ops[..self.device_count])
     }
+
+    pub fn write_raw_digit(&mut self, device_index: usize, digit: u8, value: u8) -> Result<()> {
+        let digit_register = Register::try_digit(digit)?;
+        self.write_device_register(device_index, digit_register, value)
+    }
 }
 
 #[cfg(test)]
@@ -594,6 +599,54 @@ mod tests {
         driver
             .set_intensity_all(intensity)
             .expect("Set intensity all failed");
+        spi.done();
+    }
+
+    #[test]
+    fn test_write_raw_digit() {
+        let device_index = 0;
+        let digit = 3;
+        let data = 0b10101010;
+        let expected_transactions = [
+            Transaction::transaction_start(),
+            Transaction::write_vec(vec![Register::Digit3.addr(), data]),
+            Transaction::transaction_end(),
+        ];
+        let mut spi = SpiMock::new(&expected_transactions);
+        let mut driver = Max7219::new(&mut spi);
+
+        driver
+            .write_raw_digit(device_index, digit, data)
+            .expect("Write raw digit should succeed");
+        spi.done();
+    }
+
+    #[test]
+    fn test_write_raw_digit_invalid_digit() {
+        let mut spi = SpiMock::new(&[]); // No transactions expected for invalid digit
+        let mut driver = Max7219::new(&mut spi);
+
+        let result = driver.write_raw_digit(0, 8, 0x00); // Digit 8 is invalid
+
+        assert_eq!(result, Err(Error::InvalidDigit));
+
+        spi.done();
+    }
+
+    #[test]
+    fn test_set_device_decode_mode() {
+        let mode = DecodeMode::Digits0To3;
+        let expected_transactions = [
+            Transaction::transaction_start(),
+            Transaction::write_vec(vec![Register::DecodeMode.addr(), mode.value()]),
+            Transaction::transaction_end(),
+        ];
+        let mut spi = SpiMock::new(&expected_transactions);
+        let mut driver = Max7219::new(&mut spi);
+
+        driver
+            .set_device_decode_mode(0, mode)
+            .expect("Set decode mode failed");
         spi.done();
     }
 }

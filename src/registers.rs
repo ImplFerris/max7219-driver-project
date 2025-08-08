@@ -1,3 +1,5 @@
+use crate::{Result, error::Error};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Register {
@@ -35,6 +37,21 @@ impl Register {
     /// Convert register to u8 value
     pub const fn addr(self) -> u8 {
         self as u8
+    }
+
+    /// Try to convert a digit index (0-7) into a corresponding `Register::DigitN`.
+    pub(crate) fn try_digit(digit: u8) -> Result<Self> {
+        match digit {
+            0 => Ok(Register::Digit0),
+            1 => Ok(Register::Digit1),
+            2 => Ok(Register::Digit2),
+            3 => Ok(Register::Digit3),
+            4 => Ok(Register::Digit4),
+            5 => Ok(Register::Digit5),
+            6 => Ok(Register::Digit6),
+            7 => Ok(Register::Digit7),
+            _ => Err(Error::InvalidDigit),
+        }
     }
 
     /// Returns an iterator over all digit registers (Digit0 to Digit7).
@@ -134,5 +151,23 @@ mod tests {
         assert_eq!(DecodeMode::Digit0.value(), 0x01);
         assert_eq!(DecodeMode::Digits0To3.value(), 0x0F);
         assert_eq!(DecodeMode::AllDigits.value(), 0xFF);
+    }
+
+    #[test]
+    fn test_try_digit_valid() {
+        assert_eq!(Register::try_digit(0), Ok(Register::Digit0));
+        assert_eq!(Register::try_digit(1), Ok(Register::Digit1));
+        assert_eq!(Register::try_digit(2), Ok(Register::Digit2));
+        assert_eq!(Register::try_digit(3), Ok(Register::Digit3));
+        assert_eq!(Register::try_digit(4), Ok(Register::Digit4));
+        assert_eq!(Register::try_digit(5), Ok(Register::Digit5));
+        assert_eq!(Register::try_digit(6), Ok(Register::Digit6));
+        assert_eq!(Register::try_digit(7), Ok(Register::Digit7));
+    }
+
+    #[test]
+    fn test_try_digit_invalid() {
+        assert_eq!(Register::try_digit(8), Err(Error::InvalidDigit));
+        assert_eq!(Register::try_digit(255), Err(Error::InvalidDigit));
     }
 }
