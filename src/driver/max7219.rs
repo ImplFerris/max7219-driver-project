@@ -33,6 +33,18 @@ where
         Ok(self)
     }
 
+    pub fn init(&mut self) -> Result<()> {
+        self.power_on()?;
+
+        self.test_all(false)?;
+        self.set_scan_limit_all(NUM_DIGITS)?;
+        self.set_decode_mode_all(DecodeMode::NoDecode)?;
+
+        self.clear_all()?;
+
+        Ok(())
+    }
+
     pub(crate) fn write_device_register(
         &mut self,
         device_index: usize,
