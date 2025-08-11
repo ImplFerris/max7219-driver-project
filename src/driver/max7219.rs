@@ -70,12 +70,22 @@ where
         Ok(())
     }
 
+    /// Write each (register, data) tuple to its corresponding MAX7219 device in the daisy chain.
+    ///
+    /// The number of tuples in `ops` must exactly match `self.device_count`.
+    /// Convention: ops[0] = furthest device from MCU, ops[device_count-1] = nearest device
+    /// Because The first one we send in the SPI gets pushed till the last device.
+    ///
+    /// # Panics (only in debug builds)
+    /// - If `ops.len() != self.device_count`.
+    ///
+    /// # Errors
+    /// - Returns an SPI error if the write operation fails.
     pub(crate) fn write_all_registers(&mut self, ops: &[(Register, u8)]) -> Result<()> {
         // clear the buffer: 2 bytes per device
         self.buffer = [0; MAX_DISPLAYS * 2];
 
-        // fill in reverse order so that SPI shifts into the last device first
-        for (i, &(reg, data)) in ops.iter().rev().enumerate() {
+        for (i, &(reg, data)) in ops.iter().enumerate() {
             let offset = i * 2;
             self.buffer[offset] = reg as u8;
             self.buffer[offset + 1] = data;
